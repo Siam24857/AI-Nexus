@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceChat - Local Storage Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar {
+            width: 30%;
+            background: linear-gradient(to bottom, #7c5fe7, #6e8efb);
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-section {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .profile-pic {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            margin-bottom: 10px;
+        }
+
+        .profile-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .profile-status {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .history-item i {
+            margin-right: 10px;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .current-chat {
+            font-weight: 600;
+            color: #7c5fe7;
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #4caf50;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f5f7fb;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .received {
+            background: white;
+            border-top-left-radius: 5px;
+            align-self: flex-start;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .sent {
+            background: #7c5fe7;
+            color: white;
+            border-top-right-radius: 5px;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .voice-message {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+        }
+
+        .voice-message i {
+            font-size: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .voice-player {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .voice-timeline {
+            flex: 1;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            margin: 0 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-progress {
+            position: absolute;
+            height: 100%;
+            background: #7c5fe7;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .voice-duration {
+            font-size: 12px;
+            min-width: 40px;
+        }
+
+        .chat-input {
+            padding: 15px 20px;
+            background: white;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            background: #f5f7fb;
+            border-radius: 20px;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #7c5fe7;
+            color: white;
+            border: none;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #6a4dda;
+            transform: scale(1.05);
+        }
+
+        .action-btn i {
+            font-size: 18px;
+        }
+
+        .record-btn {
+            background: #ff5f5f;
+        }
+
+        .record-btn.recording {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .login-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .login-title {
+            color: #7c5fe7;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .login-input:focus {
+            border-color: #7c5fe7;
+        }
+
+        .login-btn {
+            background: #7c5fe7;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: #6a4dda;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .recording-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff5f5f;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(255, 95, 95, 0.3);
+        }
+
+        .recording-indicator i {
+            margin-right: 8px;
+            animation: pulse 1s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .sidebar {
+                width: 80px;
+                padding: 10px;
+            }
+            
+            .profile-name, .profile-status, .history-item span {
+                display: none;
+            }
+            
+            .profile-pic {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <h1 class="login-title">VoiceChat</h1>
+        <p>Create your profile to start chatting</p>
+        <input type="text" id="usernameInput" class="login-input" placeholder="Your Name">
+        <input type="text" id="statusInput" class="login-input" placeholder="Status (e.g. Online)" value="Online">
+        <button class="login-btn" id="loginBtn">Start Chatting</button>
+    </div>
+
+    <!-- Recording Indicator -->
+    <div class="recording-indicator hidden" id="recordingIndicator">
+        <i class="fas fa-microphone"></i> Recording... Click to stop
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container hidden" id="chatContainer">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile-section">
+                <img src="https://ui-avatars.com/api/?name=User&background=random" class="profile-pic" id="profilePic">
+                <div class="profile-name" id="profileName">User</div>
+                <div class="profile-status" id="profileStatus">Online</div>
+            </div>
+            
+            <h3>Chat History</h3>
+            <div class="chat-history" id="chatHistory">
+                <div class="history-item"><i class="fas fa-comment"></i> <span>General Chat</span></div>
+                <div class="history-item"><i class="fas fa-user-friends"></i> <span>Friends Group</span></div>
+                <div class="history-item"><i class="fas fa-user"></i> <span>John Doe</span></div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div>
+                    <span class="current-chat">General Chat</span>
+                    <span class="online-dot"></span>
+                    <span>5 online</span>
+                </div>
+                <div>
+                    <i class="fas fa-search"></i>
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" class="message-input" id="messageInput" placeholder="Type a message...">
+                <button class="action-btn" id="emojiBtn">
+                    <i class="far fa-smile"></i>
+                </button>
+                <button class="action-btn record-btn" id="recordBtn">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="action-btn" id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const loginScreen = document.getElementById('loginScreen');
+            const chatContainer = document.getElementById('chatContainer');
+            const usernameInput = document.getElementById('usernameInput');
+            const statusInput = document.getElementById('statusInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const profileName = document.getElementById('profileName');
+            const profileStatus = document.getElementById('profileStatus');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const recordBtn = document.getElementById('recordBtn');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatHistory = document.getElementById('chatHistory');
+            const recordingIndicator = document.getElementById('recordingIndicator');
+            
+            // Audio recording variables
+            let mediaRecorder;
+            let audioChunks = [];
+            let isRecording = false;
+            let audioContext;
+            let audioBlob = null;
+            
+            // Check if user profile exists in localStorage
+            const savedProfile = localStorage.getItem('chatProfile');
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+                usernameInput.value = profile.name;
+                statusInput.value = profile.status;
+            }
+            
+            // Login functionality
+            loginBtn.addEventListener('click', function() {
+                const username = usernameInput.value.trim();
+                const status = statusInput.value.trim();
+                
+                if (username) {
+                    // Save profile to localStorage
+                    const profile = {
+                        name: username,
+                        status: status || 'Online',
+                        pic: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
+                    };
+                    localStorage.setItem('chatProfile', JSON.stringify(profile));
+                    
+                    // Update UI
+                    profileName.textContent = profile.name;
+                    profileStatus.textContent = profile.status;
+                    document.getElementById('profilePic').src = profile.pic;
+                    
+                    // Show chat interface
+                    loginScreen.classList.add('hidden');
+                    chatContainer.classList.remove('hidden');
+                    
+                    // Load messages from localStorage
+                    loadMessages();
+                } else {
+                    alert('Please enter your name');
+                }
+            });
+            
+            // Send message functionality
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            function sendMessage() {
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    // Create message object
+                    const message = {
+                        text: messageText,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        type: 'text',
+                        sender: JSON.parse(localStorage.getItem('chatProfile')).name,
+                        timestamp: new Date().getTime()
+                    };
+                    
+                    // Save to localStorage
+                    saveMessage(message);
+                    
+                    // Add to chat UI
+                    addMessageToChat(message);
+                    
+                    // Clear input
+                    messageInput.value = '';
+                }
+            }
+            
+            // Voice recording functionality
+            recordBtn.addEventListener('click', toggleRecording);
+            recordingIndicator.addEventListener('click', stopRecording);
+            
+            async function toggleRecording() {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            }
+            
+            async function startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioChunks = [];
+                    
+                    // Initialize audio context for processing
+                    audioContext = new AudioContext();
+                    const source = audioContext.createMediaStreamSource(stream);
+                    
+                    // Create media recorder
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        
+                        // Create voice message
+                        const message = {
+                            type: 'voice',
+                            duration: Math.round((Date.now() - startTime) / 1000),
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            sender: JSON.parse(localStorage.getItem('chatProfile')).name,
+                            timestamp: new Date().getTime(),
+                            audio: null
+                        };
+                        
+                        // Convert blob to base64 for storage
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = function() {
+                            message.audio = reader.result;
+                            
+                            // Save to localStorage
+                            saveMessage(message);
+                            
+                            // Add to chat UI
+                            addMessageToChat(message);
+                        };
+                    };
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordBtn.classList.add('recording');
+                    recordingIndicator.classList.remove('hidden');
+                    
+                    // Record start time
+                    startTime = Date.now();
+                    
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    alert('Could not access your microphone. Please check permissions.');
+                }
+            }
+            
+            function stopRecording() {
+                if (isRecording && mediaRecorder) {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    recordBtn.classList.remove('recording');
+                    recordingIndicator.classList.add('hidden');
+                    
+                    // Stop all audio tracks
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                }
+            }
+            
+            // Play audio message
+            function playAudioMessage(audioData) {
+                const audio = new Audio(audioData);
+                audio.play();
+                
+                // Update the progress bar
+                const progressBar = event.target.closest('.voice-message').querySelector('.voice-progress');
+                
+                audio.addEventListener('timeupdate', () => {
+                    const percent = (audio.currentTime / audio.duration) * 100;
+                    progressBar.style.width = percent + '%';
+                });
+                
+                audio.addEventListener('ended', () => {
+                    progressBar.style.width = '0%';
+                });
+            }
+            
+            // Save message to localStorage
+            function saveMessage(message) {
+                let messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+                messages.push(message);
+                localStorage.setItem('chatMessages', JSON.stringify(messages));
+            }
+            
+            // Load messages from localStorage
+            function loadMessages() {
+                const messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+                chatMessages.innerHTML = '';
+                messages.forEach(addMessageToChat);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Add message to chat UI
+            function addMessageToChat(message) {
+                const messageEl = document.createElement('div');
+                messageEl.classList.add('message');
+                
+                if (message.sender === JSON.parse(localStorage.getItem('chatProfile')).name) {
+                    messageEl.classList.add('sent');
+                } else {
+                    messageEl.classList.add('received');
+                }
+                
+                if (message.type === 'text') {
+                    messageEl.innerHTML = `
+                        <div class="message-sender">${message.sender}</div>
+                        ${message.text}
+                        <div class="message-time">${message.time}</div>
+                    `;
+                } else if (message.type === 'voice') {
+                    messageEl.innerHTML = `
+                        <div class="message-sender">${message.sender}</div>
+                        <div class="voice-message">
+                            <i class="fas fa-play" onclick="playAudioMessage('${message.audio}')"></i>
+                            <div class="voice-player">
+                                <div class="voice-timeline">
+                                    <div class="voice-progress"></div>
+                                </div>
+                                <div class="voice-duration">${message.duration}s</div>
+                            </div>
+                        </div>
+                        <div class="message-time">${message.time}</div>
+                    `;
+                }
+                
+                chatMessages.appendChild(messageEl);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // Generate some sample messages if none exist
+            if (!localStorage.getItem('chatMessages')) {
+                const sampleMessages = [
+                    {
+                        text: 'Welcome to VoiceChat! 👋',
+                        time: '10:30 AM',
+                        type: 'text',
+                        sender: 'System',
+                        timestamp: new Date().getTime() - 3600000
+                    },
+                    {
+                        text: 'This is a secure chat that saves all messages in your browser storage.',
+                        time: '10:31 AM',
+                        type: 'text',
+                        sender: 'System',
+                        timestamp: new Date().getTime() - 3540000
+                    },
+                    {
+                        text: 'Try sending a message or recording a voice note!',
+                        time: '10:32 AM',
+                        type: 'text',
+                        sender: 'System',
+                        timestamp: new Date().getTime() - 3480000
+                    }
+                ];
+                
+                localStorage.setItem('chatMessages', JSON.stringify(sampleMessages));
+            }
+            
+            // Make playAudioMessage function available globally
+            window.playAudioMessage = playAudioMessage;
+        });
+    </script>
+</body>
+</html>
